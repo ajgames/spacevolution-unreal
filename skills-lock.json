@@ -1,0 +1,191 @@
+{
+  "version": 1,
+  "skills": {
+    "ue-actor-component-architecture": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-actor-component-architecture/SKILL.md",
+      "computedHash": "f6a8ff1a5335507879bae8fcadb624efa83ad8a397da4e8b93697524d04fb6fe"
+    },
+    "ue-ai-navigation": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-ai-navigation/SKILL.md",
+      "computedHash": "3b2b5968f6a6460003b15ddead6df009e32e01d4fa52efbbf814c5a2b774dcc6"
+    },
+    "ue-animation-system": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-animation-system/SKILL.md",
+      "computedHash": "9081b44d3495dac02cc64492468001d9571823f6dccb31328204bf51ea838c24"
+    },
+    "ue-async-threading": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-async-threading/SKILL.md",
+      "computedHash": "981b33007c6c66a3842e68ac28c30fcab3607e20a486b27dbbdc819ab2b1a91a"
+    },
+    "ue-audio-system": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-audio-system/SKILL.md",
+      "computedHash": "c96a86bc0a04734afee3164c98101e895afce6d5459e7e07a557fdcf37137da2"
+    },
+    "ue-blueprint-cpp-interop": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-blueprint-cpp-interop/SKILL.md",
+      "computedHash": "2098ce216ebe6de244504da36407da7daeb8ffded957e0c6e09bcefc4519d370"
+    },
+    "ue-character-movement": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-character-movement/SKILL.md",
+      "computedHash": "857e8fc1753d27889686db4db5e044e3d4aff1681ea40f645d507c84d62d2a2f"
+    },
+    "ue-cpp-foundations": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-cpp-foundations/SKILL.md",
+      "computedHash": "8e597a111085793a8716b889d34f9fff0e7689428ab47337e33f36f634ffb4f6"
+    },
+    "ue-data-assets-tables": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-data-assets-tables/SKILL.md",
+      "computedHash": "6711b89e8a0aea81dfcedf8ec207d3d3c6386635bc6fd10f3adf698cf41a8851"
+    },
+    "ue-editor-tools": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-editor-tools/SKILL.md",
+      "computedHash": "ab6d2b29b741dff4d56eb504be5589d6831edb718ed375a781e6201abde55637"
+    },
+    "ue-game-features": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-game-features/SKILL.md",
+      "computedHash": "7a80c8172fef1092f5b8d94eb5435b6879831dc3839a1a13c1b403034b3ba8d6"
+    },
+    "ue-gameplay-abilities": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-gameplay-abilities/SKILL.md",
+      "computedHash": "69aa06a3f62426af77873ff93540f3b1537cd95174375fe223688f1a80aa532c"
+    },
+    "ue-gameplay-cameras": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-gameplay-cameras/SKILL.md",
+      "computedHash": "6e2b2a48da304596d06e3c14a6fb2b4f0c6d8d6c1af98819224b2915bb691b9a"
+    },
+    "ue-gameplay-framework": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-gameplay-framework/SKILL.md",
+      "computedHash": "c5fddfc2c564c0176ebf6fc68c2b5987174a6de12d04d5e82652d9f92684fec8"
+    },
+    "ue-gameplay-tags-messaging": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-gameplay-tags-messaging/SKILL.md",
+      "computedHash": "8bc86072030f2a2f8dc6868a029a7bd47f7166ed502ac373079c328f3cbfdcb7"
+    },
+    "ue-input-system": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-input-system/SKILL.md",
+      "computedHash": "6fba316a4d577ad033fbe55acb66550c641c2fac4e7665b9fbffb08cda7e48d1"
+    },
+    "ue-mass-entity": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-mass-entity/SKILL.md",
+      "computedHash": "cac84b90f8f15a70e5d7a7ad3086d85a08f3271435c09a7516f760d01488990f"
+    },
+    "ue-materials-rendering": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-materials-rendering/SKILL.md",
+      "computedHash": "f9b990fa441d7550cf587f90b8969b5e147d6510425a600abe7466b2c00fd9ab"
+    },
+    "ue-module-build-system": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-module-build-system/SKILL.md",
+      "computedHash": "17d509d1165ae22df783c50a2f0fd086299b35b5843a43a8af7c286a46ad345e"
+    },
+    "ue-mover": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-mover/SKILL.md",
+      "computedHash": "fd47495a68d8d86a584b5b8332e7ebf4c768e8b0130b7bcde0c7b28763fb809d"
+    },
+    "ue-networking-replication": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-networking-replication/SKILL.md",
+      "computedHash": "f297e568ce6724675df0f591a81dfb5d896ae7a99f7830c57530db49c776fa2a"
+    },
+    "ue-niagara-effects": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-niagara-effects/SKILL.md",
+      "computedHash": "f7e19dddef14de686adc32718b4ef8247d9f5e1e7c8bf030fea8fc884d1210f8"
+    },
+    "ue-physics-collision": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-physics-collision/SKILL.md",
+      "computedHash": "fd495a1d8be0d29dabaabcefef6a788c788e972e69fad3548fde71fe6b9108db"
+    },
+    "ue-procedural-generation": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-procedural-generation/SKILL.md",
+      "computedHash": "0b1b0f49b40f5c424fd2e0357b84d17675e8f703d91abab3270d2561a7f45c8f"
+    },
+    "ue-project-context": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-project-context/SKILL.md",
+      "computedHash": "ea47257b231fe145ac293e8f53cac0d564103aab3d2ed7bc10bde0c270fca952"
+    },
+    "ue-sequencer-cinematics": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-sequencer-cinematics/SKILL.md",
+      "computedHash": "1c6d8e94946b60e1352d0180ee3301dfbb96c7b48b5cf1a72f4c51a8209874e4"
+    },
+    "ue-serialization-savegames": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-serialization-savegames/SKILL.md",
+      "computedHash": "d9341c8b8d174cfcad7d441a9770d7e3875049deb2fb7d2f2e74e91e4aab7281"
+    },
+    "ue-state-trees": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-state-trees/SKILL.md",
+      "computedHash": "5dae803e51f9b3a7725364c042f0055fae19ed970af036831d125defd4dcdb3c"
+    },
+    "ue-testing-debugging": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-testing-debugging/SKILL.md",
+      "computedHash": "eaa4c5d66b56571114e52e4a4d69865072c496d3747d9c69bca32f30b3214adf"
+    },
+    "ue-ui-umg-slate": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-ui-umg-slate/SKILL.md",
+      "computedHash": "3d06093116fdff1e0fdde792120ca1d16e5f4cf9f54d28d50c27edc4cbb23a2c"
+    },
+    "ue-world-level-streaming": {
+      "source": "quodsoler/unreal-engine-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ue-world-level-streaming/SKILL.md",
+      "computedHash": "e601e1864309be6796ef8a68176a5bb69b411d9e90b4f1e962a8507af29f6c4c"
+    }
+  }
+}
