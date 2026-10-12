@@ -5,12 +5,15 @@
 #include "ShipSlidingDoorComponent.generated.h"
 
 class APawn;
+class UAudioComponent;
 class UMaterialInterface;
 class UPrimitiveComponent;
 class USceneComponent;
 class UShapeComponent;
+class USoundAttenuation;
+class USoundBase;
 
-/** One moving part of a door: a scene component on the same actor and how far it travels to open. */
+/** One moving part of a door: a scene component on the same actor, and how far it travels and turns to open. */
 USTRUCT(BlueprintType)
 struct FShipDoorLeaf
 {
@@ -23,14 +26,18 @@ struct FShipDoorLeaf
 	/** Offset from its closed position when fully open, in its parent's space. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Door")
 	FVector OpenOffset = FVector::ZeroVector;
+
+	/** Turn about the leaf's own pivot when fully open, e.g. a hatch hinged at its foot swinging down into a ramp. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Door")
+	FRotator OpenRotation = FRotator::ZeroRotator;
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FShipDoorStateSignature, bool, bOpen);
 
 /**
- * Slides an actor's door leaves open while a pawn is inside a trigger volume, and closes them once it leaves.
- * Leaves and trigger are found by component name, so any module Blueprint can be given a door.
- * Leaves must be Movable.
+ * Slides (or swings) an actor's door leaves open while a pawn is inside a trigger volume, and closes them once it
+ * leaves. Without a trigger the door only moves when told to. Leaves and trigger are found by component name, so any
+ * module Blueprint can be given a door. Leaves must be Movable.
  */
 UCLASS(ClassGroup = (Ship), meta = (BlueprintSpawnableComponent))
 class SPACEVOLUTION_API UShipSlidingDoorComponent : public UActorComponent
@@ -68,6 +75,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door|Status Lamp")
 	TObjectPtr<UMaterialInterface> ClosedLampMaterial;
 
+	/** Played from the doorway (the trigger, else the first leaf) as the door starts to open. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door|Sound")
+	TObjectPtr<USoundBase> OpenSound;
+
+	/** Played as the door starts to close. A door that reverses mid-travel fades out the sound it was making. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door|Sound")
+	TObjectPtr<USoundBase> CloseSound;
+
+	/** How the door's sounds fall off with distance. None plays them at full volume everywhere. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Door|Sound")
+	TObjectPtr<USoundAttenuation> SoundAttenuation;
+
 	UPROPERTY(BlueprintAssignable, Category = "Door")
 	FShipDoorStateSignature OnDoorStateChanged;
 
@@ -101,14 +120,19 @@ private:
 		int32 OtherBodyIndex);
 
 	void SetWantsOpen(bool bOpen);
+	void PlayDoorSound(bool bOpen);
 	void ApplyAlpha();
 	USceneComponent* FindOwnedComponent(FName Name) const;
 
 	TArray<TWeakObjectPtr<USceneComponent>> LeafComponents;
 	TArray<FVector> ClosedLocations;
+	TArray<FQuat> ClosedRotations;
 	TWeakObjectPtr<UShapeComponent> TriggerComponent;
 	TSet<TWeakObjectPtr<APawn>> PawnsInside;
 	FTimerHandle CloseTimer;
+	TWeakObjectPtr<UAudioComponent> ActiveSound;
 	float Alpha = 0.f;
 	bool bWantsOpen = false;
+	/** False while BeginPlay sets the starting state, so a door that starts open doesn't announce it. */
+	bool bPlaySounds = false;
 };

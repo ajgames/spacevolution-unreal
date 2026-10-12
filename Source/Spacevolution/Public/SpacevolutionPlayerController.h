@@ -4,13 +4,18 @@
 #include "GameFramework/PlayerController.h"
 #include "SpacevolutionPlayerController.generated.h"
 
+class AShip;
+class AWaveRider;
 class UCameraComponent;
 class UInputAction;
 class UInputMappingContext;
 class UShipFlightComponent;
 struct FInputActionValue;
 
-/** Owns interface input (overlays, the helm, and later menus and build mode) so it works whatever pawn is possessed. */
+/**
+ * Owns interface input (overlays, the helm, and later menus and build mode) so it works whatever pawn is possessed.
+ * The use key (F) is contextual: it boards a moored wave rider within reach, otherwise takes or leaves the helm.
+ */
 UCLASS()
 class SPACEVOLUTION_API ASpacevolutionPlayerController : public APlayerController
 {
@@ -30,9 +35,28 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Helm")
 	UShipFlightComponent* GetPilotedFlight() const { return PilotedFlight.Get(); }
 
-	/** True when there is a ship this player could take the helm of. */
+	/** True when the player is aboard a ship and could take its helm. */
 	UFUNCTION(BlueprintPure, Category = "Helm")
 	bool CanPilot() const;
+
+	/** The ship in the level, if any. */
+	UFUNCTION(BlueprintPure, Category = "Helm")
+	AShip* GetShip() const;
+
+	/** An unridden wave rider within reach of the player on foot, or null. */
+	UFUNCTION(BlueprintPure, Category = "Interact")
+	AWaveRider* FindRideableNearby() const;
+
+	/** Hands the player over to a wave rider; the crew member stays behind out of sight. */
+	UFUNCTION(BlueprintCallable, Category = "Interact")
+	bool BoardRider(AWaveRider* Rider);
+
+	/** A short notice for the HUD (e.g. why the pad won't take you yet), empty once it has been up a while. */
+	UFUNCTION(BlueprintPure, Category = "HUD")
+	FText GetNotice() const;
+
+	UFUNCTION(BlueprintCallable, Category = "HUD")
+	void ShowNotice(const FText& Notice);
 
 	virtual void PlayerTick(float DeltaTime) override;
 
@@ -68,13 +92,23 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input|Helm")
 	TObjectPtr<UInputAction> HelmSurgeAction;
 
+	/** Calls the landing autopilot over a pad, or lifts off from one. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input|Helm")
+	TObjectPtr<UInputAction> HelmLandAction;
+
+	/** How close the player has to walk to a wave rider to board it. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interact", meta = (Units = "cm"))
+	float RideReach = 450.f;
+
 	/** Extra field of view at full surge, for a sense of the drive opening up. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Helm")
 	float SurgeFieldOfViewBoost = 14.f;
 
 private:
 	void TogglePerformanceOverlay();
+	void Interact();
 	void ToggleHelm();
+	void HelmLand();
 	void HelmMove(const FInputActionValue& Value);
 	void HelmStop();
 	void HelmSteer(const FInputActionValue& Value);
@@ -84,6 +118,8 @@ private:
 	void HelmSurgeStop();
 
 	TWeakObjectPtr<UShipFlightComponent> PilotedFlight;
+	FText Notice;
+	double NoticeTime = -100.0;
 	TWeakObjectPtr<UCameraComponent> HelmCamera;
 	float HelmBaseFieldOfView = 80.f;
 };

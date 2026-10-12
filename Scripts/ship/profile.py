@@ -98,10 +98,14 @@ class Spec:
         self.components.append({"kind": "box", "name": name, "xf": unreal.Transform(location=unreal.Vector(*center)),
                                 "extent": half_extent})
 
-    def door(self, name, leaves, trigger, lamp=None, open_slot=None, closed_slot=None):
-        """Sliding door driven by UShipSlidingDoorComponent. leaves: [(component name, open offset)]."""
+    def door(self, name, leaves, trigger, lamp=None, open_slot=None, closed_slot=None, locked=False, seconds=0.7,
+             sounds=None):
+        """Door driven by UShipSlidingDoorComponent. leaves: [(component name, open offset[, open rotation as
+        (pitch, yaw, roll)])]. With no trigger it only moves when told to; a locked one waits to be unlocked.
+        sounds: (open, close) takes under /Game/Audio/SFX, audio.DOOR by default."""
         self.components.append({"kind": "door", "name": name, "leaves": leaves, "trigger": trigger,
-                                "lamp": lamp, "open_slot": open_slot, "closed_slot": closed_slot})
+                                "lamp": lamp, "open_slot": open_slot, "closed_slot": closed_slot, "locked": locked,
+                                "seconds": seconds, "sounds": sounds})
 
     def light(self, name, origin, direction, width, height, intensity, shadows=True,
               color=(242, 247, 255), along=X_AXIS, barn=60.0, radius=700.0):

@@ -39,7 +39,8 @@ for (int z = 0; z < 16; z++)
 float calm = lerp(CalmFloor, 1.0, open);
 """
 
-# Vertex offset in cm. Keep in step with AOcean::Displace.
+# Vertex offset in cm. Keep the waves in step with AOcean::Displace; the fade toward the coarse edge of the mesh and
+# the planet's curvature are drawn only, as both are nothing near the view.
 WPO_HLSL = _ARRAYS + """
 float r = distance(p, Centre.xy);
 float3 o = 0;
@@ -60,6 +61,8 @@ for (int i = 0; i < 8; i++)
     o.xy += q * a * w.xy * c;
     o.z += a * s;
 }
+// The sea curves away with the planet (visual only, like the fade: neither matters near the view).
+o.z -= r * r / (2.0 * PlanetRadius);
 return o * 100.0;
 """
 
@@ -149,10 +152,11 @@ def build_material():
 
     # Vertex displacement.
     wpo = _custom(m, WPO_HLSL, unreal.CustomMaterialOutputType.CMOT_FLOAT3, "GerstnerOffset",
-                  ["P", "Centre", "Fade"] + list(shared) + wave_pins, -1200, -800)
+                  ["P", "Centre", "Fade", "PlanetRadius"] + list(shared) + wave_pins, -1200, -800)
     MEL.connect_material_expressions(undisplaced, "", wpo, "P")
     MEL.connect_material_expressions(_vector(m, "SurfaceCentre", (0.0, 0.0, 0.0), -2400, -150, "Ocean"), "", wpo, "Centre")
     MEL.connect_material_expressions(_scalar(m, "FadeWavelengths", 7.0, -2400, -50, "Ocean"), "", wpo, "Fade")
+    MEL.connect_material_expressions(_scalar(m, "PlanetRadius", 6.36e6, -2400, 30, "Ocean"), "", wpo, "PlanetRadius")
     for name, e in scalars.items():
         MEL.connect_material_expressions(e, "", wpo, name)
     y = _wave_inputs(m, wpo, -1700, -800)

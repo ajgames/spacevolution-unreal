@@ -161,6 +161,11 @@ FINISHES = {
     "SpireGlass": ((0.38, 0.45, 0.50), 0.12, 0.0, None, 0.0),
     "SpireLight": ((0.9, 0.9, 0.9), 0.4, 0.0, (1.0, 0.85, 0.6), 6.0),
     "BoatHull": ((0.92, 0.93, 0.94), 0.25, 0.0, None, 0.0),
+    # The spaceport.
+    "PadLine":  ((0.90, 0.90, 0.88), 0.6, 0.0, None, 0.0),
+    "PadMark":  ((0.85, 0.58, 0.06), 0.55, 0.0, None, 0.0),
+    "PadLight": ((0.3, 0.2, 0.1), 0.4, 0.0, (1.0, 0.55, 0.15), 30.0),
+    "BeaconMast": ((0.75, 0.76, 0.78), 0.35, 1.0, None, 0.0),
     "BoatDeck": ((0.55, 0.40, 0.26), 0.6, 0.0, None, 0.0),
     # The wave rider.
     "Carbon":   ((0.07, 0.072, 0.08), 0.28, 0.5, None, 0.0),
@@ -328,6 +333,36 @@ def build_spray():
     return m
 
 
+def build_beam():
+    """Light thrown straight up from the spaceport beacon: additive, brightest where the view looks through the
+    middle of the column, fading out toward the top, and out of the way when the view comes close."""
+    m = _new_material("M_BeaconBeam", FOLDER)
+    m.set_editor_property("blend_mode", unreal.BlendMode.BLEND_ADDITIVE)
+    m.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
+    m.set_editor_property("two_sided", True)
+    code = """
+float face = abs(dot(normalize(N), normalize(V)));
+float fade = 1.0 - smoothstep(Base, Top, WP.z * 0.01);
+fade *= smoothstep(Near, Near * 4.0, distance(Cam, WP) * 0.01);
+return Color.rgb * Intensity * fade * (0.15 + 0.85 * face * face);
+"""
+    custom = _custom(m, code, unreal.CustomMaterialOutputType.CMOT_FLOAT3, "Beam",
+                     ["N", "V", "WP", "Cam", "Base", "Top", "Near", "Color", "Intensity"], -500, 0)
+    MEL.connect_material_expressions(_expr(m, unreal.MaterialExpressionVertexNormalWS, -900, -200), "", custom, "N")
+    MEL.connect_material_expressions(_expr(m, unreal.MaterialExpressionCameraVectorWS, -900, -100), "", custom, "V")
+    MEL.connect_material_expressions(_expr(m, unreal.MaterialExpressionWorldPosition, -900, 0), "", custom, "WP")
+    MEL.connect_material_expressions(_expr(m, unreal.MaterialExpressionCameraPositionWS, -900, 50), "", custom, "Cam")
+    MEL.connect_material_expressions(_scalar(m, "Near", 120.0, -900, 220, "Beam"), "", custom, "Near")
+    MEL.connect_material_expressions(_scalar(m, "Base", 20.0, -900, 100, "Beam"), "", custom, "Base")
+    MEL.connect_material_expressions(_scalar(m, "Top", 2600.0, -900, 180, "Beam"), "", custom, "Top")
+    MEL.connect_material_expressions(_vector(m, "Color", (1.0, 0.6, 0.2), -900, 260, "Beam"), "", custom, "Color")
+    MEL.connect_material_expressions(_scalar(m, "Intensity", 3.5, -900, 370, "Beam"), "", custom, "Intensity")
+    MEL.connect_material_property(custom, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+    MEL.recompile_material(m)
+    EAL.save_loaded_asset(m)
+    return m
+
+
 def _set(mi, scalars=None, vectors=None):
     for key, value in (scalars or {}).items():
         MEL.set_material_instance_scalar_parameter_value(mi, key, value)
@@ -354,6 +389,7 @@ def build_all():
     mats["Leaves"] = _set(_instance("MI_Leaves", foliage))
     mats["PalmLeaves"] = _set(_instance("MI_PalmLeaves", foliage), vectors=dict(zip(("LeafA", "LeafB", "LeafC"), PALM_LEAVES)))
     mats["Ground"] = _set(_instance("MI_Ground", build_ground()))
+    mats["Beam"] = _set(_instance("MI_BeaconBeam", build_beam()))
     spray = build_spray()
     mats["Spray"] = _set(_instance("MI_Spray", spray))
     mats["Wake"] = _set(_instance("MI_Wake", spray), {"Tube": 1.0, "Density": 0.45})

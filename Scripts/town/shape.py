@@ -101,8 +101,11 @@ def mainland_coast_x(y):
 
 
 def mainland_distance(x, y):
-    """Signed distance to the mainland coast: negative inland."""
-    return (mainland_coast_x(y) - x) * 0.9
+    """Signed distance to the mainland coast: negative inland. Its south coast faces the town; the rest of it
+    rounds off into the sea before the terrain ends."""
+    north, half = layout.MAINLAND_EXTENT
+    wobble = 350.0 * _COAST.fbm2(x / 2600.0 + 3.1, y / 2600.0, 3)
+    return max((mainland_coast_x(y) - x) * 0.9, abs(y) - half + wobble, x - north + wobble)
 
 
 def valley(y):
@@ -176,7 +179,7 @@ def lowest_under(x, y, radius, samples=8):
 
 
 URBAN = {"towers": 0.55, "towers_green": 0.45, "midrise": 0.5, "campus": 0.25, "village": 0.62,
-         "village_white": 0.6, "mixed": 0.6, "plaza": 1.0, "resort": 0.2, "wild": 0.0, "beach": 0.0}
+         "village_white": 0.6, "mixed": 0.6, "plaza": 1.0, "spaceport": 0.8, "wild": 0.0, "beach": 0.0}
 
 
 def land_use(x, y):
@@ -204,6 +207,22 @@ def mainland_town(y, s):
     """How built-up the mainland is s metres in from its coast: the coastal plain, densest in the valley."""
     plain = mainland_plain(y)
     return (1.0 - smoothstep(plain * 0.85, plain * 1.05, s)) * smoothstep(5.0, 25.0, s) * (0.55 + 0.45 * valley(y))
+
+
+def spaceport():
+    """The spaceport's layout in metres: islet centre, pad centre, and the pier's two ends. The pier runs south from
+    where the ground has fallen to its deck height, out past the waterline."""
+    islet = BY_NAME[f"Islet{layout.SPACEPORT_ISLET}"]
+    cx, cy = islet.x, islet.y
+    pad = (cx + layout.PAD_OFFSET[0], cy + layout.PAD_OFFSET[1])
+    # Walk south to the waterline, then back up the beach to deck height.
+    x = cx
+    while islet.distance(x, cy) < 0.0:
+        x -= 1.0
+    coast = x
+    while height(x, cy) < layout.PIER_DECK - 0.1 and x < cx:
+        x += 1.0
+    return {"islet": (cx, cy), "pad": pad, "pier_start": (x, cy), "pier_end": (coast - layout.PIER_SEAWARD, cy)}
 
 
 def calm_zones():

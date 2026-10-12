@@ -12,8 +12,6 @@ namespace
 	constexpr float PhaseStep = 2.39996f;     // golden angle, so no two waves start in step
 	constexpr float CmPerM = 100.f;
 
-	// The fade band runs from FadeWavelengths to this many times that; the material uses the same constant.
-	constexpr float FadeSpan = 1.6f;
 
 	FName IndexedName(const TCHAR* Prefix, int32 Index)
 	{
@@ -110,11 +108,17 @@ void AOcean::FollowView()
 	{
 		View = World->ViewLocationsRenderedLastFrame[0];
 	}
-	const double Snapped[2] = {FMath::GridSnap(View.X, static_cast<double>(SnapSize)), FMath::GridSnap(View.Y, static_cast<double>(SnapSize))};
-	const FVector Target(Snapped[0], Snapped[1], GetActorLocation().Z);
+	const double Height = View.Z - GetActorLocation().Z;
+	SurfaceScale = static_cast<float>(FMath::Max(1.0, Height / (GrowAboveHeight * CmPerM)));
+	const double Step = static_cast<double>(SnapSize) * SurfaceScale;
+	const FVector Target(FMath::GridSnap(View.X, Step), FMath::GridSnap(View.Y, Step), GetActorLocation().Z);
 	if (!Surface->GetComponentLocation().Equals(Target, 1.0))
 	{
 		Surface->SetWorldLocation(Target);
+	}
+	if (!FMath::IsNearlyEqual(static_cast<float>(Surface->GetComponentScale().X), SurfaceScale, 1e-3f))
+	{
+		Surface->SetWorldScale3D(FVector(SurfaceScale, SurfaceScale, 1.0));
 	}
 }
 
@@ -128,7 +132,9 @@ void AOcean::PushParameters()
 	Mid->SetScalarParameterValue(TEXT("OceanTime"), static_cast<float>(OceanTime));
 	Mid->SetScalarParameterValue(TEXT("Steepness"), Steepness);
 	Mid->SetScalarParameterValue(TEXT("CalmFloor"), CalmFloor);
-	Mid->SetScalarParameterValue(TEXT("FadeWavelengths"), FadeWavelengths);
+	// The mesh's vertices spread out as it grows, so the waves fade nearer in.
+	Mid->SetScalarParameterValue(TEXT("FadeWavelengths"), FadeWavelengths * SurfaceScale);
+	Mid->SetScalarParameterValue(TEXT("PlanetRadius"), PlanetRadiusKm > 0.f ? PlanetRadiusKm * 1000.f : 1.0e12f);
 	Mid->SetScalarParameterValue(TEXT("WaveCount"), static_cast<float>(FMath::Max(ActiveWaveCount(), 1)));
 	Mid->SetScalarParameterValue(TEXT("SeaLevel"), static_cast<float>(GetActorLocation().Z));
 	const FVector Centre = Surface ? Surface->GetComponentLocation() / CmPerM : FVector::ZeroVector;
@@ -181,11 +187,10 @@ float AOcean::CalmFactor(const FVector2D& P0) const
 
 FVector AOcean::Displace(const FVector2D& P0, FVector* OutNormal, float* OutRiseSpeed) const
 {
-	// Keep in step with the WPO code in Scripts/town/ocean.py.
+	// Keep in step with the WPO code in Scripts/town/ocean.py. Its fade with distance from the mesh's centre and the
+	// planet's curvature are left out: both are nothing near the view, which is where anything rides the waves.
 	const int32 Count = FMath::Max(ActiveWaveCount(), 1);
 	const float Calm = CalmFactor(P0);
-	const FVector2D Centre = Surface ? FVector2D(Surface->GetComponentLocation() / CmPerM) : FVector2D::ZeroVector;
-	const float FromCentre = static_cast<float>(FVector2D::Distance(P0, Centre));
 	const float T = static_cast<float>(OceanTime);
 
 	FVector Offset = FVector::ZeroVector;
@@ -202,9 +207,7 @@ FVector AOcean::Displace(const FVector2D& P0, FVector* OutNormal, float* OutRise
 		const FVector2D Dir(FMath::Cos(Rad), FMath::Sin(Rad));
 		const float K = UE_TWO_PI / W.Wavelength;
 		const float Omega = FMath::Sqrt(Gravity * K);
-		const float FadeStart = FadeWavelengths * W.Wavelength;
-		const float Fade = 1.f - FMath::SmoothStep(FadeStart, FadeStart * FadeSpan, FromCentre);
-		const float A = W.Amplitude * Calm * Fade;
+		const float A = W.Amplitude * Calm;
 		const float Q = Steepness / (K * W.Amplitude * Count);
 		const float Theta = K * static_cast<float>(FVector2D::DotProduct(Dir, P0)) - Omega * T + i * PhaseStep;
 		float S, C;

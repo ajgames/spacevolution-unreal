@@ -3,7 +3,7 @@ import math
 
 import unreal
 
-from . import geo
+from . import audio, geo
 from .geo import Part, box, cylinder, torus
 from .profile import (CEILING_Z, HALF_CELL, OCTAGON, PANEL, RIB, SKIN, Spec, bay, half_width_at, plain_section,
                       rib, structure, threshold)
@@ -172,6 +172,8 @@ AIRLOCK_FRONT = DOOR_X - 50.0      # back face of the door bulkhead
 HATCH = [(-62.0, 12.0), (62.0, 12.0), (76.0, 26.0), (76.0, 206.0), (62.0, 220.0), (-62.0, 220.0), (-76.0, 206.0),
          (-76.0, 26.0)]
 DOOR_TRAVEL = 91.0
+HATCH_HINGE_Z = 12.0               # the hatch's foot, which it swings down about to become the boarding ramp
+RAMP_PITCH = 117.0                 # opened, the ramp's far edge rests on the ground 80 cm below the deck
 
 
 def _hazard_band(part, x0, x1, y0, y1, z0, z1, stripe=7.0):
@@ -185,7 +187,7 @@ def _hazard_band(part, x0, x1, y0, y1, z0, z1, stripe=7.0):
 
 
 def airlock(shell):
-    """Small chamber behind the pressure door, ending in a sealed outer hatch."""
+    """Small chamber behind the pressure door, ending in the outer hatch. Returns the hatch, a part of its own."""
     x0, x1 = AIRLOCK_BACK, AIRLOCK_FRONT
     geo.extrude_x(shell, "Structure", geo.band(AIRLOCK_PATH, PANEL, PANEL + SKIN, AIRLOCK_CENTER), -HALF_CELL, x1)
     box(shell, "Structure", -HALF_CELL, x1, -110 - PANEL - SKIN, 110 + PANEL + SKIN, -PANEL - SKIN, -PANEL)
@@ -213,31 +215,42 @@ def airlock(shell):
     # Ceiling light panel.
     box(shell, "LEDSoft", -258, -142, -42, 42, 258.5, 262.0, bevel=0.6)
 
-    # Outer hatch wall, frame and the sealed hatch itself.
+    # Outer hatch wall with the hatchway through it, and its frame.
     end = geo.extrude_x_mesh(shell.slot("Panel"), geo.outward_offset(AIRLOCK_PATH, PANEL + 2, AIRLOCK_CENTER, closed=True),
                              -HALF_CELL, x0)
+    geo.subtract(end, geo.extrude_x_mesh(shell.slot("Panel"), HATCH, -HALF_CELL - 5, x0 + 5))
     shell.append(end)
     frame = geo.extrude_x_mesh(shell.slot("Trim"), geo.outward_offset(HATCH, 16, (0.0, 116.0), closed=True), x0, x0 + 12,
                                bevel=1.5)
     geo.subtract(frame, geo.extrude_x_mesh(shell.slot("Trim"), HATCH, x0 - 5, x0 + 20))
     shell.append(frame)
-    geo.extrude_x(shell, "Hull", geo.outward_offset(HATCH, -1.0, (0.0, 116.0), closed=True), x0, x0 + 7, bevel=2.0)
+    box(shell, "LEDAmber", x0, x0 + 4, -12, 12, 239.0, 245.0, bevel=0.5)
+
+    # The hatch itself: its own part, pivoting on its foot, so it can swing down outward into a boarding ramp.
+    # Its inner face, with the wheel and the bars, becomes the ramp's top, the bars cleats underfoot.
+    hatch = Part("SM_Entry_Hatch")
+    geo.extrude_x(hatch, "Hull", geo.outward_offset(HATCH, -1.0, (0.0, 116.0), closed=True), x0, x0 + 7, bevel=2.0)
+    seal = geo.extrude_x_mesh(hatch.slot("Rubber"), geo.outward_offset(HATCH, 2.5, (0.0, 116.0), closed=True), x0 - 0.5, x0 + 1)
+    geo.subtract(seal, geo.extrude_x_mesh(hatch.slot("Rubber"), geo.outward_offset(HATCH, -1.5, (0.0, 116.0), closed=True),
+                                          x0 - 2, x0 + 3))
+    hatch.append(seal)
     hx = x0 + 7
-    torus(shell, "Chrome", (hx + 3, 0.0, 116.0), "x", 17.0, 1.8, 48, 10)
-    cylinder(shell, "Metal", (hx + 2, 0.0, 116.0), "x", 4.5, 4.0, 24)
+    torus(hatch, "Chrome", (hx + 3, 0.0, 116.0), "x", 17.0, 1.8, 48, 10)
+    cylinder(hatch, "Metal", (hx + 2, 0.0, 116.0), "x", 4.5, 4.0, 24)
     for a in (90.0, 210.0, 330.0):
         r = math.radians(a)
         xf = geo.frame((hx + 3, 8.5 * math.cos(r), 116.0 + 8.5 * math.sin(r)), (1, 0, 0), (0, math.cos(r), math.sin(r)))
-        geo.box_xf(shell, "Chrome", xf, 2.0, 15.0, 2.0, 0.4)
+        geo.box_xf(hatch, "Chrome", xf, 2.0, 15.0, 2.0, 0.4)
     for z in (60.0, 172.0):
-        cylinder(shell, "Chrome", (hx + 2.2, 0.0, z), "y", 2.2, 112.0, 20)
+        cylinder(hatch, "Chrome", (hx + 2.2, 0.0, z), "y", 2.2, 112.0, 20)
         for s in (-1, 1):
-            box(shell, "Metal", hx - 0.5, hx + 5, s * 58 - 3, s * 58 + 3, z - 5, z + 5, bevel=0.6)
-    _hazard_band(shell, hx - 0.2, hx + 0.2, -56, 56, 22.0, 32.0)
-    _hazard_band(shell, hx - 0.2, hx + 0.2, -56, 56, 198.0, 208.0)
-    box(shell, "LEDAmber", x0, x0 + 4, -12, 12, 239.0, 245.0, bevel=0.5)
+            box(hatch, "Metal", hx - 0.5, hx + 5, s * 58 - 3, s * 58 + 3, z - 5, z + 5, bevel=0.6)
+    _hazard_band(hatch, hx - 0.2, hx + 0.2, -56, 56, 22.0, 32.0)
+    _hazard_band(hatch, hx - 0.2, hx + 0.2, -56, 56, 198.0, 208.0)
+    unreal.GeometryScript_MeshTransforms.translate_mesh(hatch.mesh, unreal.Vector(-x0, 0.0, -HATCH_HINGE_Z))
     # Frame round the pressure door on the airlock side.
     geo.extrude_x(shell, "Hull", geo.band(DOOR_PATH, -2, 12, DOOR_CENTER), x1 - 8, x1, bevel=1.5)
+    return hatch
 
 
 def entry(full, half):
@@ -268,14 +281,16 @@ def entry(full, half):
     box(shell, "Screen", DOOR_X + 11.5, DOOR_X + 11.8, 140, 162, 130, 160)
     cylinder(shell, "LEDGreen", (DOOR_X + 12, 151, 114), "x", 5.5, 2.0, 24)
     torus(shell, "Metal", (DOOR_X + 11.5, 151, 114), "x", 6.6, 0.9, 32, 8)
-    airlock(shell)
+    hatch = airlock(shell)
 
     lamp = Part("SM_Entry_DoorLamp")
     box(lamp, "LEDAmber", DOOR_X + 16, DOOR_X + 16.8, -26, 26, 261.5, 264)
 
     leaf = door_leaf()
-    spec.parts += [shell, leaf, lamp]
+    spec.parts += [shell, leaf, lamp, hatch]
     spec.mesh("Shell", shell)
+    # The leaf has a name of its own: "Hatch" belongs to the door component, which AShip opens on landing.
+    spec.mesh("HatchLeaf", hatch, unreal.Transform(location=unreal.Vector(AIRLOCK_BACK, 0.0, HATCH_HINGE_Z)), movable=True)
     spec.mesh("DoorL", leaf, _at(DOOR_X - 34), movable=True)
     spec.mesh("DoorR", leaf, _at(DOOR_X - 34), scale=(1, -1, 1), movable=True)
     spec.mesh("DoorLamp", lamp)
@@ -284,6 +299,9 @@ def entry(full, half):
     spec.trigger("DoorTrigger", (-90.0, 0.0, 125.0), (165.0, 130.0, 125.0))
     spec.door("Door", [("DoorL", (0.0, -DOOR_TRAVEL, 0.0)), ("DoorR", (0.0, DOOR_TRAVEL, 0.0))],
               trigger="DoorTrigger", lamp="DoorLamp", open_slot="LEDGreen", closed_slot="LEDAmber")
+    # The outer hatch stays shut and locked until the ship is down (AShip opens it on landing).
+    spec.door("Hatch", [("HatchLeaf", (0.0, 0.0, 0.0), (RAMP_PITCH, 0.0, 0.0))], trigger=None, locked=True, seconds=3.0,
+              sounds=audio.HATCH)
     for side, s in ((1, "R"), (-1, "L")):
         spec.light(f"Vestibule_Wash{s}", (-35.0, side * 139, CEILING_Z - 1.5), (-0.55, -side * 0.35, -1), 40, 14, 18.0)
     spec.light("Airlock_Light", (-200.0, 0.0, 257.0), (0, 0, -1), 110, 80, 16.0, radius=450.0)

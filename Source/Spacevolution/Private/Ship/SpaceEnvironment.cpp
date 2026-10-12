@@ -2,6 +2,8 @@
 #include "Ship/Ship.h"
 #include "Ship/ShipFlightComponent.h"
 #include "Spacevolution.h"
+#include "Camera/PlayerCameraManager.h"
+#include "GameFramework/PlayerController.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/VolumetricCloudComponent.h"
 #include "Engine/DirectionalLight.h"
@@ -16,6 +18,9 @@ namespace
 	{
 		return FLinearColor(static_cast<float>(V.X), static_cast<float>(V.Y), static_cast<float>(V.Z), 0.f);
 	}
+
+	// Backdrop parameters that brighten it, faded together through the atmosphere.
+	const FName BrightnessParameters[] = {TEXT("StarBrightness"), TEXT("MilkyWay"), TEXT("Nebula"), TEXT("DustBrightness"), TEXT("StarIntensity")};
 }
 
 ASpaceEnvironment::ASpaceEnvironment()
@@ -36,6 +41,22 @@ void ASpaceEnvironment::BeginPlay()
 		Ship = It ? *It : nullptr;
 	}
 	Flight = Ship ? Ship->GetFlight() : nullptr;
+	if (bPlanetFixed)
+	{
+		if (Backdrop)
+		{
+			if (UStaticMeshComponent* Mesh = Backdrop->FindComponentByClass<UStaticMeshComponent>())
+			{
+				BackdropMaterial = Mesh->CreateDynamicMaterialInstance(0);
+				for (const FName& Name : BrightnessParameters)
+				{
+					BackdropBrightness.Add(Name, BackdropMaterial->K2_GetScalarParameterValue(Name));
+				}
+			}
+		}
+		ApplyPlanetFixed();
+		return;
+	}
 	if (!Flight)
 	{
 		UE_LOG(LogShip, Warning, TEXT("%s: no ship with a flight component; the universe will stay put"), *GetName());
@@ -67,9 +88,44 @@ void ASpaceEnvironment::BeginPlay()
 void ASpaceEnvironment::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-	if (Flight)
+	if (bPlanetFixed)
+	{
+		ApplyPlanetFixed();
+	}
+	else if (Flight)
 	{
 		Apply();
+	}
+}
+
+void ASpaceEnvironment::ApplyPlanetFixed()
+{
+	if (!BackdropMaterial)
+	{
+		return;
+	}
+	const APlayerController* Player = GetWorld()->GetFirstPlayerController();
+	if (!Player || !Player->PlayerCameraManager)
+	{
+		return;
+	}
+	// The space frame is the world's axes with the planet's centre a radius below the origin.
+	const FVector CameraKm = Player->PlayerCameraManager->GetCameraLocation() / CmPerKm + FVector(0.0, 0.0, PlanetRadiusKm);
+	BackdropMaterial->SetVectorParameterValue(TEXT("SpaceOrigin"), AsColor(CameraKm));
+	BackdropMaterial->SetVectorParameterValue(TEXT("SpaceAxisX"), AsColor(FVector::XAxisVector));
+	BackdropMaterial->SetVectorParameterValue(TEXT("SpaceAxisY"), AsColor(FVector::YAxisVector));
+	BackdropMaterial->SetVectorParameterValue(TEXT("SpaceAxisZ"), AsColor(FVector::ZAxisVector));
+	BackdropMaterial->SetVectorParameterValue(TEXT("DustVelocity"), AsColor(Flight ? Flight->GetVelocityKmPerSecond() : FVector::ZeroVector));
+
+	const double Altitude = CameraKm.Size() - PlanetRadiusKm;
+	const float Fade = FMath::SmoothStep(static_cast<float>(StarFadeAltitudeKm.X), static_cast<float>(StarFadeAltitudeKm.Y), static_cast<float>(Altitude));
+	for (const TPair<FName, float>& Parameter : BackdropBrightness)
+	{
+		BackdropMaterial->SetScalarParameterValue(Parameter.Key, Parameter.Value * Fade);
+	}
+	if (Backdrop)
+	{
+		Backdrop->SetActorHiddenInGame(Fade <= 0.f);
 	}
 }
 

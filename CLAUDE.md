@@ -80,6 +80,22 @@ Warn the user before regenerating if they've been hand-authoring under one of th
 
 **Units.** UE works in centimetres. Each `layout.py` (the source of truth for its scene's composition, hero camera included) is in metres and converts through `util.M`. The ship grid is 600 cm cells with the deck at Z=0.
 
+## Sound effects (`SourceAudio/`)
+
+Game sounds are made with the claude-music SFX skill (Stable Audio Open) and piped into the project by `Scripts/sfx.py`, run from WSL. When asked for a sound for the game, use the wrapper rather than calling `sfx_engine.sh` directly, so the takes land in the project instead of `~/Music`:
+
+```bash
+python3 Scripts/sfx.py generate Door/DoorOpen --prompt "pneumatic hiss, then servo whir, then heavy clunk, close mic, dry" --duration 4
+python3 Scripts/sfx.py add Drive/SurgeEngage ~/Music/claude-music-output/sfx-....flac   # bring in existing files
+python3 Scripts/sfx.py import [--force]                                                 # re-sync SourceAudio
+```
+
+- The sound name comes first; `--quality`/`--seed` and every claude-music-sfx `generate` flag can follow it.
+- Takes are saved as `SourceAudio/SFX/<Folder>/<Name>_NN.<ext>` (numbers count up; nothing is overwritten) and imported as Sound Waves at `/Game/Audio/SFX/<Folder>/<Name>_NN`. Put `Loop` in the name of anything that should loop. Prompts and seeds are logged in `SourceAudio/takes.jsonl`.
+- `SourceAudio/` belongs in git: it's the source of truth for `/Game/Audio`, which a fresh clone imports from it on the first editor start. To drop a take for good, delete its source file as well as the asset.
+- The import runs inside the open editor (`Scripts/ue_exec.py` runs `Scripts/audio_import.py` over Python Remote Execution). If the editor is closed, `audio_import` picks the files up at the next editor start (StartupScripts in `Config/DefaultEngine.ini`). If the editor is in Play mode, stop it and run `import`.
+- `SourceAudio/.imported.json` (gitignored, like `Content/`) records what has been imported, so a take deleted in the Content Browser stays deleted. Changed source files are reimported with their asset settings kept.
+
 ## C++ module (`Source/Spacevolution`)
 
 Dependencies: Core, CoreUObject, Engine (public); EnhancedInput, RenderCore, RHI (private). Plugins: PythonScriptPlugin, GeometryScripting, EnhancedInput, ModelingToolsEditorMode, ModelContextProtocol. The log category is `LogShip`.

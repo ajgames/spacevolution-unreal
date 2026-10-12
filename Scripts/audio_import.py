@@ -104,4 +104,5 @@ def on_editor_startup():
 
 
 if __name__ == "__main__":
-    sync(force="--force" in sys.argv[1:])
+    if not sync(force="--force" in sys.argv[1:]):
+        log("No new sounds imported")

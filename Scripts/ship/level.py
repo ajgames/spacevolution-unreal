@@ -3,6 +3,7 @@ import math
 
 import unreal
 
+from . import audio
 from .util import EAL, EAS, LES, ROOT, UES, R, V, log, try_set
 
 LEVEL_PATH = f"{ROOT}/Maps/L_ShipInterior"
@@ -72,6 +73,7 @@ def build_ship(modules, fixtures):
     placements.append(unreal.ShipModulePlacement(module=modules["ObservationEnd"],
                                                  cell=unreal.IntVector(CORRIDOR_CELLS[-1] + 1, 0, 0)))
     ship.set_editor_property("layout", unreal.ShipLayout(modules=placements))
+    audio.apply_to_ship(ship)
     ship.rebuild()
     spawned = [a for a in EAS.get_all_level_actors() if isinstance(a, unreal.ShipModule)]
     log(f"ship rebuilt with {len(spawned)} modules")

@@ -1,9 +1,11 @@
 #include "Ship/Ship.h"
+#include "Ship/ShipAudioComponent.h"
 #include "Ship/ShipFlightComponent.h"
 #include "Ship/ShipHardpointComponent.h"
 #include "Ship/ShipModule.h"
 #include "Ship/ShipPartDefinitions.h"
 #include "Ship/ShipSaveGame.h"
+#include "Ship/ShipSlidingDoorComponent.h"
 #include "Spacevolution.h"
 #include "Camera/CameraComponent.h"
 #include "Components/SceneComponent.h"
@@ -30,6 +32,7 @@ AShip::AShip()
 	SetRootComponent(Root);
 
 	Flight = CreateDefaultSubobject<UShipFlightComponent>(TEXT("Flight"));
+	Audio = CreateDefaultSubobject<UShipAudioComponent>(TEXT("Audio"));
 }
 
 AShipModule* AShip::FindHelmModule() const
@@ -61,6 +64,101 @@ void AShip::BeginPlay()
 	{
 		Rebuild();
 	}
+	if (Flight && Flight->bFlyInWorld)
+	{
+		PrepareForWorldFlight();
+		Flight->OnLanded.AddDynamic(this, &AShip::HandleLanded);
+		Flight->OnLiftingOff.AddDynamic(this, &AShip::HandleLiftingOff);
+	}
+	SetHatchOpen(Flight && Flight->IsLanded());
+}
+
+void AShip::PrepareForWorldFlight()
+{
+	// Modules, their fixtures and anything else bolted on (an outer hull) all ride along.
+	TArray<AActor*> Parts;
+	GetAttachedActors(Parts, true, true);
+	Parts.Add(this);
+
+	const FTransform ShipToWorld = GetActorTransform();
+	FBox LocalBox(ForceInit);
+	for (AActor* Part : Parts)
+	{
+		TInlineComponentArray<USceneComponent*> Components(Part);
+		for (USceneComponent* Component : Components)
+		{
+			Component->SetMobility(EComponentMobility::Movable);
+			const UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component);
+			if (Primitive && Primitive->IsCollisionEnabled())
+			{
+				LocalBox += Primitive->Bounds.GetBox().TransformBy(ShipToWorld.Inverse());
+			}
+		}
+	}
+	TArray<AActor*> Ignored = Parts;
+	Flight->SetCollision(LocalBox, Ignored);
+	UE_LOG(LogShip, Log, TEXT("%s flies through the world: %d parts, %s collision box"), *GetName(), Parts.Num(),
+		*LocalBox.GetSize().ToCompactString());
+}
+
+void AShip::HandleLanded()
+{
+	SetHatchOpen(true);
+}
+
+void AShip::HandleLiftingOff()
+{
+	SetHatchOpen(false);
+}
+
+bool AShip::ContainsLocation(FVector WorldLocation) const
+{
+	if (!GetModuleAt(WorldToCell(WorldLocation)))
+	{
+		return false;
+	}
+	const double Height = GetActorTransform().InverseTransformPosition(WorldLocation).Z;
+	return Height > -100.0 && Height < CellSize;
+}
+
+void AShip::SetHatchOpen(bool bOpen)
+{
+	for (AShipModule* Module : ModuleActors)
+	{
+		if (!IsValid(Module))
+		{
+			continue;
+		}
+		TInlineComponentArray<UShipSlidingDoorComponent*> Doors(Module);
+		for (UShipSlidingDoorComponent* Door : Doors)
+		{
+			if (Door->GetFName() == TEXT("Hatch"))
+			{
+				Door->bLocked = !bOpen;
+				bOpen ? Door->Open() : Door->Close();
+			}
+		}
+	}
+}
+
+bool AShip::IsHatchOpen() const
+{
+	for (const AShipModule* Module : ModuleActors)
+	{
+		if (!IsValid(Module))
+		{
+			continue;
+		}
+		TInlineComponentArray<UShipSlidingDoorComponent*> Doors(Module);
+		for (const UShipSlidingDoorComponent* Door : Doors)
+		{
+			if (Door->GetFName() == TEXT("Hatch") && Door->IsOpen())
+			{
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 void AShip::Destroyed()

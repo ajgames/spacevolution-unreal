@@ -15,22 +15,16 @@ namespace
 	const FLinearColor HudPanel(0.02f, 0.02f, 0.03f, 0.45f);
 }
 
-void AWaveRiderHUD::DrawCentred(const FString& Text, float Y, const FLinearColor& Color, UFont* Font, float Scale)
-{
-	float W = 0.f, H = 0.f;
-	GetTextSize(Text, W, H, Font, Scale);
-	DrawText(Text, Color, (Canvas->ClipX - W) * 0.5f, Y, Font, Scale);
-}
-
 void AWaveRiderHUD::DrawHUD()
 {
-	Super::DrawHUD();
-
 	const AWaveRider* Rider = PlayerOwner ? Cast<AWaveRider>(PlayerOwner->GetPawn()) : nullptr;
 	if (!Rider || !Canvas)
 	{
+		// On foot or at a helm.
+		Super::DrawHUD();
 		return;
 	}
+	AHUD::DrawHUD();
 	const float Scale = FMath::Clamp(Canvas->ClipY / 1080.f, 0.85f, 2.5f);
 	const float CX = Canvas->ClipX * 0.5f;
 	UFont* Large = GEngine->GetLargeFont();
@@ -42,26 +36,27 @@ void AWaveRiderHUD::DrawHUD()
 	const float PanelY = Canvas->ClipY - PanelH - 28.f * Scale;
 	DrawRect(HudPanel, CX - PanelW * 0.5f, PanelY, PanelW, PanelH);
 	const FString Speed = FString::Printf(TEXT("%d km/h"), FMath::RoundToInt(Rider->GetSpeedKmh()));
-	DrawCentred(Speed, PanelY + 8.f * Scale, Rider->IsBoosting() ? HudHot : HudAmber, Large, Scale * 1.6f);
+	DrawCentred(Speed, PanelY + 8.f * Scale, Rider->IsBoosting() ? HudHot : HudAmber, Scale * 1.6f, Large);
 	DrawBurstMeter(*Rider, CX, PanelY + 58.f * Scale, Scale);
 
 	// Air time while airborne, and the last and best jumps.
 	if (Rider->IsAirborne() && Rider->GetAirTime() > 0.25f)
 	{
 		const FString Air = FString::Printf(TEXT("AIR  %.1f s   %.1f m"), Rider->GetAirTime(), FMath::Max(Rider->GetHeightAboveSurface(), 0.f));
-		DrawCentred(Air, PanelY - 40.f * Scale, Rider->IsBursting() ? HudHot : HudAmber, Medium, Scale * 1.3f);
+		DrawCentred(Air, PanelY - 40.f * Scale, Rider->IsBursting() ? HudHot : HudAmber, Scale * 1.3f, Medium);
 	}
 	else if (Rider->GetBestAirTime() > 0.f)
 	{
 		const FString Record = FString::Printf(TEXT("last air %.1f s    best %.1f s"), Rider->GetLastAirTime(), Rider->GetBestAirTime());
-		DrawCentred(Record, PanelY - 28.f * Scale, HudDim, Medium, Scale);
+		DrawCentred(Record, PanelY - 28.f * Scale, HudDim, Scale, Medium);
 	}
 
-	if (Rider->GetGameTimeSinceCreation() < ControlsHintSeconds)
+	if (Rider->GetRiddenSeconds() < ControlsHintSeconds)
 	{
 		const FString Controls = TEXT("W/S throttle    A/D steer    SPACE jump, hold in the air to burst    SHIFT boost    MOUSE look    R reset");
-		DrawCentred(Controls, 24.f * Scale, HudDim, Medium, Scale * 0.85f);
+		DrawCentred(Controls, 24.f * Scale, HudDim, Scale * 0.85f, Medium);
 	}
+	DrawObjectives(Scale);
 }
 
 void AWaveRiderHUD::DrawBurstMeter(const AWaveRider& Rider, float CentreX, float Y, float Scale)
@@ -79,5 +74,5 @@ void AWaveRiderHUD::DrawBurstMeter(const AWaveRider& Rider, float CentreX, float
 	{
 		DrawRect(HudPanel, X + W * i / 4.f - Scale, Y, 2.f * Scale, H);
 	}
-	DrawCentred(TEXT("BURST"), Y + H + 3.f * Scale, HudDim, GEngine->GetSmallFont(), Scale);
+	DrawCentred(TEXT("BURST"), Y + H + 3.f * Scale, HudDim, Scale, GEngine->GetSmallFont());
 }

@@ -6,6 +6,7 @@
 #include "Ship.generated.h"
 
 class AShipModule;
+class UShipAudioComponent;
 class UShipFixtureDefinition;
 class UShipFlightComponent;
 class UShipModuleDefinition;
@@ -68,9 +69,23 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Ship|Flight")
 	UShipFlightComponent* GetFlight() const { return Flight; }
 
+	UFUNCTION(BlueprintPure, Category = "Ship|Sound")
+	UShipAudioComponent* GetAudio() const { return Audio; }
+
 	/** Module holding the helm viewpoint (a camera component named HelmView), or null if none is fitted. */
 	UFUNCTION(BlueprintPure, Category = "Ship|Flight")
 	AShipModule* FindHelmModule() const;
+
+	/** True if a world location is inside one of the ship's modules. */
+	UFUNCTION(BlueprintPure, Category = "Ship|Grid")
+	bool ContainsLocation(FVector WorldLocation) const;
+
+	/** Unlocks and opens the outer hatch (a door component named Hatch on any module), or closes and locks it. */
+	UFUNCTION(BlueprintCallable, Category = "Ship|Flight")
+	void SetHatchOpen(bool bOpen);
+
+	UFUNCTION(BlueprintPure, Category = "Ship|Flight")
+	bool IsHatchOpen() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Ship|Save")
 	bool SaveLayout(const FString& SlotName, int32 UserIndex = 0) const;
@@ -87,6 +102,9 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "Ship|Flight")
 	TObjectPtr<UShipFlightComponent> Flight;
 
+	UPROPERTY(VisibleAnywhere, Category = "Ship|Sound")
+	TObjectPtr<UShipAudioComponent> Audio;
+
 	/**
 	 * Spawned actor for each entry in Layout.Modules, by index. Not carried over when the ship is duplicated or
 	 * pasted in the editor, so a copy never owns the original's modules. Press Rebuild on the copy (it also
@@ -94,6 +112,15 @@ private:
 	 */
 	UPROPERTY(VisibleInstanceOnly, NonPIEDuplicateTransient, TextExportTransient, Category = "Ship")
 	TArray<TObjectPtr<AShipModule>> ModuleActors;
+
+	/** Readies a ship that flies through the level: everything on it movable, and its collision box measured. */
+	void PrepareForWorldFlight();
+
+	UFUNCTION()
+	void HandleLanded();
+
+	UFUNCTION()
+	void HandleLiftingOff();
 
 	TMap<FIntVector, int32> BuildOccupancy() const;
 	int32 FindPlacementIndex(FIntVector Cell) const;

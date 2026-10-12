@@ -103,6 +103,7 @@ def build_helm_input():
     steer = _action("IA_HelmSteer", VT.AXIS2D, "Steer: yaw and pitch, degrees")
     roll = _action("IA_HelmRoll", VT.AXIS1D, "Roll", cumulative=True)
     surge = _action("IA_HelmSurge", VT.BOOLEAN, "Surge the drive")
+    land = _action("IA_HelmLand", VT.BOOLEAN, "Land on the pad below, or lift off")
     imc = load_or_create(f"{INPUT_FOLDER}/IMC_Helm", unreal.InputMappingContext, unreal.InputMappingContext_Factory())
     mappings = [
         _map(imc, move, "W"),
@@ -124,12 +125,14 @@ def build_helm_input():
         _map(imc, roll, "Gamepad_LeftShoulder", [_negate(imc, x=True)]),
         _map(imc, surge, "LeftShift"),
         _map(imc, surge, "Gamepad_FaceButton_Bottom"),
+        _map(imc, land, "L"),
+        _map(imc, land, "Gamepad_FaceButton_Right"),
     ]
     imc.set_editor_property("default_key_mappings", unreal.InputMappingContextMappingData(mappings=mappings))
     imc.set_editor_property("context_description", "Zero-point helm")
     EAL.save_loaded_asset(imc)
     return {"helm_mapping_context": imc, "helm_move_action": move, "helm_steer_action": steer,
-            "helm_roll_action": roll, "helm_surge_action": surge}
+            "helm_roll_action": roll, "helm_surge_action": surge, "helm_land_action": land}
 
 
 def build_interface_input():

@@ -4,7 +4,10 @@
 #include "Ship/ShipModule.h"
 #include "Spacevolution.h"
 #include "UI/PerformanceOverlaySubsystem.h"
+#include "WaveRider/WaveRider.h"
 #include "Camera/CameraComponent.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/GameInstance.h"
@@ -19,6 +22,8 @@ namespace
 		TActorIterator<AShip> It(World);
 		return It ? *It : nullptr;
 	}
+
+	constexpr double NoticeSeconds = 3.0;
 }
 
 ASpacevolutionPlayerController::ASpacevolutionPlayerController()
@@ -54,7 +59,11 @@ void ASpacevolutionPlayerController::SetupInputComponent()
 	}
 	if (ToggleHelmAction)
 	{
-		Input->BindAction(ToggleHelmAction, ETriggerEvent::Started, this, &ThisClass::ToggleHelm);
+		Input->BindAction(ToggleHelmAction, ETriggerEvent::Started, this, &ThisClass::Interact);
+	}
+	if (HelmLandAction)
+	{
+		Input->BindAction(HelmLandAction, ETriggerEvent::Started, this, &ThisClass::HelmLand);
 	}
 	if (HelmMoveAction)
 	{
@@ -85,15 +94,117 @@ void ASpacevolutionPlayerController::TogglePerformanceOverlay()
 	}
 }
 
+AShip* ASpacevolutionPlayerController::GetShip() const
+{
+	return FindShip(GetWorld());
+}
+
 bool ASpacevolutionPlayerController::CanPilot() const
 {
 	const AShip* Ship = FindShip(GetWorld());
-	return Ship && Ship->GetFlight();
+	const APawn* Crew = GetPawn();
+	return Ship && Ship->GetFlight() && Crew && !Cast<AWaveRider>(Crew) && Ship->ContainsLocation(Crew->GetActorLocation());
+}
+
+AWaveRider* ASpacevolutionPlayerController::FindRideableNearby() const
+{
+	const APawn* Crew = GetPawn();
+	if (!Crew || IsPiloting() || Cast<AWaveRider>(Crew))
+	{
+		return nullptr;
+	}
+	AWaveRider* Best = nullptr;
+	double BestDistance = RideReach;
+	for (TActorIterator<AWaveRider> It(GetWorld()); It; ++It)
+	{
+		const FVector Offset = It->GetActorLocation() - Crew->GetActorLocation();
+		const double Distance = Offset.Size2D();
+		if (!It->GetController() && Distance <= BestDistance && FMath::Abs(Offset.Z) < 400.0)
+		{
+			Best = *It;
+			BestDistance = Distance;
+		}
+	}
+	return Best;
+}
+
+bool ASpacevolutionPlayerController::BoardRider(AWaveRider* Rider)
+{
+	APawn* Crew = GetPawn();
+	if (!Rider || Rider->GetController())
+	{
+		return false;
+	}
+	// The crew member's walking controls would fight the rider's; start the input stack afresh.
+	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
+	{
+		Subsystem->ClearAllMappings();
+		if (InterfaceMappingContext)
+		{
+			Subsystem->AddMappingContext(InterfaceMappingContext, 1);
+		}
+	}
+	Possess(Rider);
+	if (Crew)
+	{
+		if (ACharacter* Walker = Cast<ACharacter>(Crew))
+		{
+			Walker->GetCharacterMovement()->DisableMovement();
+		}
+		Crew->SetActorHiddenInGame(true);
+		Crew->SetActorEnableCollision(false);
+		// Glide from the crew member's eyes to the rider's chase camera.
+		SetViewTarget(Crew);
+		SetViewTargetWithBlend(Rider, 1.2f, VTBlend_EaseInOut, 2.f);
+	}
+	return true;
+}
+
+FText ASpacevolutionPlayerController::GetNotice() const
+{
+	const UWorld* World = GetWorld();
+	return World && World->GetTimeSeconds() - NoticeTime < NoticeSeconds ? Notice : FText::GetEmpty();
+}
+
+void ASpacevolutionPlayerController::ShowNotice(const FText& InNotice)
+{
+	Notice = InNotice;
+	NoticeTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
+}
+
+void ASpacevolutionPlayerController::Interact()
+{
+	if (AWaveRider* Rider = FindRideableNearby())
+	{
+		BoardRider(Rider);
+		return;
+	}
+	if (IsPiloting() || CanPilot())
+	{
+		ToggleHelm();
+	}
 }
 
 void ASpacevolutionPlayerController::ToggleHelm()
 {
 	SetPiloting(!IsPiloting());
+}
+
+void ASpacevolutionPlayerController::HelmLand()
+{
+	UShipFlightComponent* Flight = PilotedFlight.Get();
+	if (!Flight)
+	{
+		return;
+	}
+	if (!Flight->bFlyInWorld)
+	{
+		ShowNotice(NSLOCTEXT("Helm", "NoPadsInSpace", "Nowhere to land out here"));
+	}
+	else if (!Flight->ToggleLanding())
+	{
+		ShowNotice(NSLOCTEXT("Helm", "NoPad", "No landing pad in range"));
+	}
 }
 
 void ASpacevolutionPlayerController::SetPiloting(bool bPilot)
@@ -113,6 +224,12 @@ void ASpacevolutionPlayerController::SetPiloting(bool bPilot)
 			return;
 		}
 		PilotedFlight = Flight;
+		// The crew member rides along at the helm, held still while the ship flies.
+		if (ACharacter* Walker = Cast<ACharacter>(GetPawn()))
+		{
+			Walker->GetCharacterMovement()->DisableMovement();
+			Walker->AttachToActor(Ship, FAttachmentTransformRules::KeepWorldTransform);
+		}
 		if (Subsystem && HelmMappingContext)
 		{
 			Subsystem->AddMappingContext(HelmMappingContext, 2);
@@ -149,6 +266,12 @@ void ASpacevolutionPlayerController::SetPiloting(bool bPilot)
 		if (Subsystem && HelmMappingContext)
 		{
 			Subsystem->RemoveMappingContext(HelmMappingContext);
+		}
+		if (ACharacter* Walker = Cast<ACharacter>(GetPawn()))
+		{
+			Walker->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+			Walker->SetActorRotation(FRotator(0.0, Walker->GetActorRotation().Yaw, 0.0));
+			Walker->GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 		}
 		PilotedFlight.Reset();
 		HelmCamera.Reset();

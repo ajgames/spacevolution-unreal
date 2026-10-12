@@ -39,7 +39,7 @@ CANAL_WOBBLE = 10.0
 
 # Islets: (x, y, radius, style)
 ISLETS = [
-    (-1520.0, -790.0, 120.0, "resort"),
+    (-1560.0, -820.0, 150.0, "spaceport"),
     (-420.0, -1640.0, 55.0, "wild"),
     (-1230.0, 760.0, 70.0, "wild"),
     (-1450.0, 900.0, 45.0, "wild"),
@@ -58,12 +58,26 @@ BUFFER_WIDTH = {"towers": 55.0, "towers_green": 60.0, "midrise": 50.0, "campus":
 SHELF_WIDTH = 45.0                  # shallow turquoise shelf beyond the beach
 SHELF_DEPTH = 3.5
 
-# Mainland across the bay: coast line x = MAINLAND_COAST + wiggle, curving south on the far right.
+# The spaceport, where arriving ships land: on the first islet, south of Central. A pad, a beacon that shows from
+# high up, a terminal and a hangar, and a pier where the PWC-01 waits.
+SPACEPORT_ISLET = 0
+PAD_OFFSET = (-55.0, 0.0)           # pad centre from the islet's centre: toward the pier
+PAD_RADIUS = 36.0
+PAD_TOP = 5.2
+SHIP_MIDDLE = 12.2                  # the arriving ship's middle, ahead of its origin (the entry module)
+BEACON_OFFSET = (14.0, 32.0)        # beacon mast from the pad centre
+PIER_DECK = 1.7                     # deck height above the sea
+PIER_SEAWARD = 40.0                 # how far the pier runs out past the waterline
+PIER_WIDTH = 4.0
+
+# Mainland across the bay: coast line x = MAINLAND_COAST + wiggle, curving south on the far right. It's an island
+# itself (Penang), ending before the terrain does, so it looks whole from orbit.
 MAINLAND_COAST = 1550.0
 MAINLAND_RIGHT_CURVE = (1900.0, 3400.0, 1100.0)   # from y, to y, how far south the coast comes
 VALLEY_Y = 300.0                    # the town-filled valley between the two massifs
 VALLEY_WIDTH = 1000.0
 PEAK_HEIGHT = 820.0
+MAINLAND_EXTENT = (10300.0, 8600.0)  # its north coast, and how far east and west it reaches
 
 LANDMARK = (0.0, 0.0, 150.0)        # x, y, height
 LANDMARK_PLAZA = 70.0               # radius of the round plaza islet it stands on

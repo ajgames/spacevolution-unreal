@@ -26,3 +26,6 @@ __pycache__/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Local record of what Scripts/audio_import.py has imported into Content/
+SourceAudio/.imported.json

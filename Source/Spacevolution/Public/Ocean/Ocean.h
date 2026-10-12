@@ -47,6 +47,9 @@ struct FOceanCalmZone
  *
  * The surface mesh follows the view, and its material displaces it with the same waves this actor evaluates
  * on the CPU, so anything that floats or rides on the water (SampleSurface) sits exactly on what is drawn.
+ * Two things are left to the material alone, as they only matter far from the view: waves fade out where the
+ * mesh grows too coarse for them, and the sea curves away with the planet. Seen from high up, the mesh grows with
+ * altitude so the sea still reaches the horizon.
  * Wave and calm-zone parameters are pushed to the material each frame as Wave0..7 (dir X, dir Y, wavelength,
  * amplitude) and Calm0..15 (centre X, centre Y, inner, outer radius), all in metres.
  */
@@ -93,6 +96,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ocean|Surface", meta = (Units = "cm", ClampMin = "1"))
 	float SnapSize = 1600.f;
 
+	/** Above this height the surface mesh grows in proportion, so the sea reaches the horizon even from orbit. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ocean|Surface", meta = (Units = "m", ClampMin = "1"))
+	float GrowAboveHeight = 500.f;
+
+	/** The sea curves away from the view as a planet this size would. 0 keeps it flat. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ocean|Surface", meta = (Units = "km"))
+	float PlanetRadiusKm = 6360.f;
+
 	/** Water surface under (or over) a world location: its height in world cm, normal, and how fast it is rising (cm/s). */
 	UFUNCTION(BlueprintCallable, Category = "Ocean")
 	void SampleSurface(const FVector& WorldLocation, float& OutHeight, FVector& OutNormal, float& OutRiseSpeed) const;
@@ -131,4 +142,6 @@ private:
 	TObjectPtr<UMaterialInstanceDynamic> SurfaceMaterial;
 
 	double OceanTime = 0.0;
+	/** How much the surface mesh is grown for the view's height. */
+	float SurfaceScale = 1.f;
 };

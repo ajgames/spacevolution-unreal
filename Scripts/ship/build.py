@@ -9,11 +9,11 @@ import importlib
 
 import unreal
 
-from . import util, geo, materials, profile, fixtures, modules, blueprints, player, level
+from . import util, geo, materials, audio, profile, fixtures, modules, blueprints, player, level
 
 
 def reload_all():
-    for m in (util, geo, materials, profile, fixtures, modules, blueprints, player, level):
+    for m in (util, geo, materials, audio, profile, fixtures, modules, blueprints, player, level):
         importlib.reload(m)
 
 

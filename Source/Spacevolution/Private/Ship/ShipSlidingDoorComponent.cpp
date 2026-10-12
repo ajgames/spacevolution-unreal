@@ -1,9 +1,11 @@
 #include "Ship/ShipSlidingDoorComponent.h"
 #include "Spacevolution.h"
+#include "Components/AudioComponent.h"
 #include "Components/MeshComponent.h"
 #include "Components/ShapeComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
+#include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
 
 UShipSlidingDoorComponent::UShipSlidingDoorComponent()
@@ -42,6 +44,7 @@ void UShipSlidingDoorComponent::BeginPlay()
 		}
 		LeafComponents.Add(Component);
 		ClosedLocations.Add(Component ? Component->GetRelativeLocation() : FVector::ZeroVector);
+		ClosedRotations.Add(Component ? Component->GetRelativeRotation().Quaternion() : FQuat::Identity);
 	}
 
 	if (!Trigger.IsNone())
@@ -69,6 +72,7 @@ void UShipSlidingDoorComponent::BeginPlay()
 	SetWantsOpen(!PawnsInside.IsEmpty() && !bLocked);
 	Alpha = bWantsOpen ? 1.f : 0.f;
 	ApplyAlpha();
+	bPlaySounds = true;
 }
 
 void UShipSlidingDoorComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -136,7 +140,36 @@ void UShipSlidingDoorComponent::SetWantsOpen(bool bOpen)
 	if (bChanged)
 	{
 		SetComponentTickEnabled(true);
+		PlayDoorSound(bWantsOpen);
 		OnDoorStateChanged.Broadcast(bWantsOpen);
+	}
+}
+
+void UShipSlidingDoorComponent::PlayDoorSound(bool bOpen)
+{
+	if (!bPlaySounds)
+	{
+		return;
+	}
+	if (UAudioComponent* Previous = ActiveSound.Get())
+	{
+		Previous->FadeOut(0.15f, 0.f);
+	}
+	USoundBase* Sound = bOpen ? OpenSound : CloseSound;
+	USceneComponent* Source = TriggerComponent.Get();
+	if (!Source && !LeafComponents.IsEmpty())
+	{
+		Source = LeafComponents[0].Get();
+	}
+	if (!Source)
+	{
+		Source = GetOwner()->GetRootComponent();
+	}
+	if (Sound && Source)
+	{
+		// Attached, so the sound stays in the doorway if the ship is flying through the level.
+		ActiveSound = UGameplayStatics::SpawnSoundAttached(Sound, Source, NAME_None, FVector::ZeroVector, FRotator::ZeroRotator,
+			EAttachLocation::KeepRelativeOffset, true, 1.f, 1.f, 0.f, SoundAttenuation);
 	}
 }
 
@@ -160,7 +193,8 @@ void UShipSlidingDoorComponent::ApplyAlpha()
 	{
 		if (USceneComponent* Leaf = LeafComponents[Index].Get())
 		{
-			Leaf->SetRelativeLocation(ClosedLocations[Index] + Leaves[Index].OpenOffset * Eased);
+			const FQuat Turn = FQuat::Slerp(FQuat::Identity, Leaves[Index].OpenRotation.Quaternion(), Eased);
+			Leaf->SetRelativeLocationAndRotation(ClosedLocations[Index] + Leaves[Index].OpenOffset * Eased, ClosedRotations[Index] * Turn);
 		}
 	}
 }

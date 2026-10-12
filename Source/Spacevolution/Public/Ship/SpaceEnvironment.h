@@ -16,6 +16,10 @@ class UShipFlightComponent;
  *
  * Materials on the clouds and backdrop receive SpaceOrigin and SpaceAxisX/Y/Z, which map world km into
  * the space frame (space = SpaceOrigin + SpaceAxisX * x + SpaceAxisY * y + SpaceAxisZ * z).
+ *
+ * With bPlanetFixed it serves a level built on the planet's surface instead (its top at the world origin, the ship
+ * flying through the world): nothing moves, and only the star backdrop is updated, from wherever the camera is,
+ * fading out on the way down through the atmosphere.
  */
 UCLASS()
 class SPACEVOLUTION_API ASpaceEnvironment : public AActor
@@ -48,6 +52,17 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Space")
 	FVector SunDirection = FVector(-0.3, -0.1, 0.95);
 
+	/** The planet stays put, its top at the world origin; only the backdrop follows the camera. */
+	UPROPERTY(EditAnywhere, Category = "Space|Planet Fixed")
+	bool bPlanetFixed = false;
+
+	UPROPERTY(EditAnywhere, Category = "Space|Planet Fixed", meta = (EditCondition = "bPlanetFixed"))
+	double PlanetRadiusKm = 6360.0;
+
+	/** Camera altitudes over which the stars fade in on the way up out of the atmosphere. */
+	UPROPERTY(EditAnywhere, Category = "Space|Planet Fixed", meta = (EditCondition = "bPlanetFixed"))
+	FVector2D StarFadeAltitudeKm = FVector2D(25.0, 70.0);
+
 	virtual void Tick(float DeltaSeconds) override;
 
 protected:
@@ -55,6 +70,7 @@ protected:
 
 private:
 	void Apply();
+	void ApplyPlanetFixed();
 
 	UPROPERTY(Transient)
 	TObjectPtr<UShipFlightComponent> Flight;
@@ -64,4 +80,7 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> BackdropMaterial;
+
+	/** The backdrop's brightness parameters as authored, which the planet-fixed fade scales. */
+	TMap<FName, float> BackdropBrightness;
 };

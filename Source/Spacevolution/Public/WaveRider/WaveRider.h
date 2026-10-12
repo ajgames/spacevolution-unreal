@@ -22,7 +22,8 @@ struct FInputActionValue;
  * and wave crests throw it into the air. Jump kicks it off the surface; holding jump in the air fires the lift
  * rings to keep it aloft while the burst charge lasts. Boost shares that charge, which refills on the water.
  *
- * Meshes and input assets are assigned in a Blueprint subclass.
+ * Meshes and input assets are assigned in a Blueprint subclass. One placed in a level waits, moored and riderless,
+ * until a player boards it.
  */
 UCLASS()
 class SPACEVOLUTION_API AWaveRider : public APawn
@@ -65,6 +66,10 @@ public:
 	/** Height of the hull above whatever is under it, in metres. */
 	UFUNCTION(BlueprintPure, Category = "Rider")
 	float GetHeightAboveSurface() const { return HeightAboveSurface / 100.f; }
+
+	/** Seconds since a player took this rider, 0 while it's riderless. */
+	UFUNCTION(BlueprintPure, Category = "Rider")
+	float GetRiddenSeconds() const;
 
 	/** Puts the rider back upright on the surface where it is, at rest. */
 	UFUNCTION(BlueprintCallable, Category = "Rider")
@@ -240,6 +245,8 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void NotifyControllerChanged() override;
+	virtual void PossessedBy(AController* NewController) override;
+	virtual void UnPossessed() override;
 
 	/** Physics body: a box round the hull. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Rider")
@@ -331,6 +338,7 @@ private:
 	float LastAirTime = 0.f;
 	float BestAirTime = 0.f;
 	float LastJumpTime = -10.f;
+	float BoardedTime = 0.f;
 	float HeightAboveSurface = 0.f;
 	float UpsetTime = 0.f;
 	float Glow = 0.f;

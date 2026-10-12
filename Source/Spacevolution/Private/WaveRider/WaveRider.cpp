@@ -45,6 +45,8 @@ AWaveRider::AWaveRider()
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
+	// A rider placed in a level waits for a player rather than getting an AI of its own.
+	AutoPossessAI = EAutoPossessAI::Disabled;
 
 	// 3.4 x 1.2 m hull (PWC-01 spec sheet), 280 kg dry plus a rider.
 	Body = CreateDefaultSubobject<UBoxComponent>(TEXT("Body"));
@@ -160,6 +162,8 @@ void AWaveRider::BeginPlay()
 		}
 	}
 	Camera->SetFieldOfView(FieldOfView);
+	// Nobody aboard until a player boards it.
+	RiderFigure->SetHiddenInGame(Controller == nullptr);
 
 	SprayMaterials.Reset();
 	for (UStaticMeshComponent* Sheet : {SprayLeft.Get(), SprayRight.Get(), Wake.Get()})
@@ -186,6 +190,27 @@ void AWaveRider::NotifyControllerChanged()
 			}
 		}
 	}
+}
+
+void AWaveRider::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	RiderFigure->SetHiddenInGame(false);
+	BoardedTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.f;
+}
+
+void AWaveRider::UnPossessed()
+{
+	Super::UnPossessed();
+	RiderFigure->SetHiddenInGame(true);
+	ThrottleInput = SteerInput = PitchInput = 0.f;
+	bJumpHeld = bBoostHeld = bJumpQueued = false;
+}
+
+float AWaveRider::GetRiddenSeconds() const
+{
+	const UWorld* World = GetWorld();
+	return Controller && World ? World->GetTimeSeconds() - BoardedTime : 0.f;
 }
 
 void AWaveRider::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -282,6 +307,15 @@ void AWaveRider::Tick(float DeltaSeconds)
 	}
 	const float Dt = FMath::Min(DeltaSeconds, 0.05f);
 	const float Now = GetWorld()->GetTimeSeconds();
+	if (!Ocean.IsValid())
+	{
+		// A streamed-in sublevel may bring the ocean after this rider began play.
+		if (AOcean* Found = AOcean::FindOcean(this))
+		{
+			Ocean = Found;
+			AddTickPrerequisiteActor(Found);
+		}
+	}
 
 	int32 InRange = 0;
 	FVector SurfaceNormal = FVector::UpVector;

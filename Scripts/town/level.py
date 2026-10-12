@@ -9,13 +9,16 @@ LEVEL_PATH = f"{ROOT}/Maps/L_BiodiverCity"
 FOLDERS = ("Terrain", "Town", "Ocean", "Environment", "Camera")
 
 # Yachts at anchor in sheltered water: (x, y, yaw)
-YACHTS = [(-1420.0, -640.0, 20.0), (160.0, -210.0, 120.0), (1180.0, -900.0, -10.0), (1080.0, 260.0, 170.0),
+YACHTS = [(-1400.0, -600.0, 20.0), (160.0, -210.0, 120.0), (1180.0, -900.0, -10.0), (1080.0, 260.0, 170.0),
           (-1980.0, 1180.0, 60.0), (-2320.0, 2150.0, 100.0), (-560.0, -1620.0, 75.0)]
 
 ATMOSPHERE = {"aerial_pespective_view_distance_scale": 1.0, "height_fog_contribution": 1.0}
 CLOUDS = {"layer_bottom_altitude": 1.6, "layer_height": 4.0}
 FOG = {
     "fog_density": 0.006,
+    # Height fog is flat-world: seen from high up it lays a hard band of haze along the eye-level horizon. Beyond this
+    # the sky atmosphere's own aerial perspective does the hazing.
+    "fog_cutoff_distance": 3.0e6,
     "fog_height_falloff": 0.15,
     "fog_max_opacity": 0.6,
     "start_distance": 3000.0,
@@ -80,6 +83,16 @@ def build_town(plan, kit, materials, bridge_mesh):
     for i, (x, y, yaw) in enumerate(YACHTS):
         if shape.height(x, y) < -1.5:
             _mesh_actor(kit["yacht"], f"Yacht_{i}", "Town/Boats", (x * M, y * M, -10.0), yaw)
+
+
+def build_spaceport(meshes):
+    port = shape.spaceport()
+    px, py = port["pad"]
+    _mesh_actor(meshes["pad"], "Pad", "Town/Spaceport", (px * M, py * M, 0.0))
+    bx, by = layout.BEACON_OFFSET
+    _mesh_actor(meshes["beacon"], "Beacon", "Town/Spaceport", ((px + bx) * M, (py + by) * M, layout.PAD_TOP * M - 20.0))
+    sx, sy = port["pier_start"]
+    _mesh_actor(meshes["pier"], "Pier", "Town/Spaceport", (sx * M, sy * M, 0.0))
 
 
 def build_ocean(water):
@@ -168,9 +181,10 @@ def build_camera_and_grade(game_mode):
     return cam
 
 
-def build(plan, ground, kit, materials, bridge_mesh, water, rider):
+def build(plan, ground, kit, materials, bridge_mesh, water, rider, port):
     _mesh_actor(ground, "Terrain", "Terrain")
     build_town(plan, kit, materials, bridge_mesh)
+    build_spaceport(port)
     build_ocean(water)
     build_sky()
     build_camera_and_grade(rider["mode"])

@@ -40,6 +40,7 @@ class Plan:
         self.buildings = []   # (kind, facade, roof, x, y, z, yaw deg, sx, sy, sz)
         self.trees = []       # (kind, x, y, z, yaw deg, scale)
         self.bridges = []     # ((x, y, z), (x, y, z), mid-span deck height)
+        self.clear = []       # ((x, y, z), (x, y, z), radius): ground kept free of trees and buildings
 
     def building(self, kind, facade, roof, x, y, yaw, w, d, h):
         nx, ny, nz = SIZES[kind]
@@ -255,16 +256,19 @@ def greenery(plan):
                 plan.tree(kind, x, y, rng.uniform(0.75, 1.35), rng)
 
 
-def resort(plan):
-    rng = random.Random(91)
-    for lobe in shape.LOBES:
-        if lobe.style != "resort":
-            continue
-        for k in range(7):
-            a = math.tau * k / 7 + rng.uniform(-0.2, 0.2)
-            r = lobe.rx * rng.uniform(0.2, 0.45)
-            x, y = lobe.x + r * math.cos(a), lobe.y + r * math.sin(a)
-            plan.building("flat", "White", "Flat", x, y, a, rng.uniform(9, 13), rng.uniform(7, 9), rng.uniform(4, 7))
+def spaceport(plan):
+    """A terminal and a hangar beside the pad; the pad itself and the pier are their own meshes."""
+    port = shape.spaceport()
+    px, py = port["pad"]
+    plan.building("block", "Tower", "Flat", px + 30.0, py + 58.0, 0.0, 34.0, 14.0, 10.0)
+    plan.building("pavilion", "White", "Green", px + 28.0, py - 60.0, 0.0, 40.0, 24.0, 12.0)
+    # Keep the pad, the walk from the ramp to the pier, and the pier clear.
+    (sx, sy), (ex, ey) = port["pier_start"], port["pier_end"]
+    plan.clear.append(((px, py, 0.0), (px, py, 0.0), layout.PAD_RADIUS + 12.0))
+    plan.clear.append(((px, py, 0.0), (sx, sy, 0.0), 7.0))
+    plan.clear.append(((sx, sy, 0.0), (ex, ey, 0.0), 7.0))
+    bx, by = layout.BEACON_OFFSET
+    plan.clear.append(((px + bx, py + by, 0.0), (px + bx, py + by, 0.0), 6.0))
 
 
 def mainland(plan):
@@ -350,13 +354,14 @@ def _segment_distance(px, py, a, b):
 def make():
     plan = Plan()
     districts(plan)
-    resort(plan)
+    spaceport(plan)
     mainland(plan)
     greenery(plan)
     bridges(plan)
-    # Keep the bridge decks and their landings clear.
+    # Keep the bridge decks and their landings clear, and the spaceport's open ground.
     def clear(x, y, margin):
-        return all(_segment_distance(x, y, a, b) > margin for a, b, _ in plan.bridges)
+        return (all(_segment_distance(x, y, a, b) > margin for a, b, _ in plan.bridges)
+                and all(_segment_distance(x, y, a, b) > r for a, b, r in plan.clear))
     plan.trees = [t for t in plan.trees if clear(t[1], t[2], 10.0)]
     plan.buildings = [b for b in plan.buildings
                       if clear(b[3], b[4], layout.BRIDGE_WIDTH * 0.5 + 0.5 * max(SIZES[b[0]][0] * b[7], SIZES[b[0]][1] * b[8]))]

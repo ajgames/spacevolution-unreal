@@ -5,6 +5,7 @@ assets survive a rebuild. Components added by hand in the Blueprint editor are a
 """
 import unreal
 
+from . import audio
 from .geo import bake, frame
 from .util import AT, EAL, ROOT, V, V2, load_or_create, log
 
@@ -104,13 +105,23 @@ def _build_components(bp, components, meshes, fixtures, materials=None):
             _place(comp, c["xf"])
         elif kind == "door":
             comp = _add(bp, actor, unreal.ShipSlidingDoorComponent, c["name"])
-            comp.set_editor_property("leaves", [unreal.ShipDoorLeaf(component=name, open_offset=V(*offset))
-                                                for name, offset in c["leaves"]])
-            comp.set_editor_property("trigger", c["trigger"])
+            leaves = []
+            for leaf in c["leaves"]:
+                pitch, yaw, roll = leaf[2] if len(leaf) > 2 else (0.0, 0.0, 0.0)
+                leaves.append(unreal.ShipDoorLeaf(component=leaf[0], open_offset=V(*leaf[1]),
+                                                  open_rotation=unreal.Rotator(roll=roll, pitch=pitch, yaw=yaw)))
+            comp.set_editor_property("leaves", leaves)
+            comp.set_editor_property("trigger", c["trigger"] or "")
+            comp.set_editor_property("locked", c.get("locked", False))
+            comp.set_editor_property("open_seconds", c.get("seconds", 0.7))
             if c["lamp"]:
                 comp.set_editor_property("status_lamp", c["lamp"])
                 comp.set_editor_property("open_lamp_material", materials[c["open_slot"]])
                 comp.set_editor_property("closed_lamp_material", materials[c["closed_slot"]])
+            open_sound, close_sound = c.get("sounds") or audio.DOOR
+            comp.set_editor_property("open_sound", audio.sound(open_sound))
+            comp.set_editor_property("close_sound", audio.sound(close_sound))
+            comp.set_editor_property("sound_attenuation", audio.attenuation())
     unreal.BlueprintEditorLibrary.compile_blueprint(bp)
     EAL.save_loaded_asset(bp)
 
