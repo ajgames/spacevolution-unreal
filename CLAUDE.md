@@ -9,7 +9,7 @@ Spacevolution is an Unreal Engine 5.8 project: DX12/SM6, Lumen, Substrate and ra
 - **C++ runtime module `Spacevolution`** (`Source/Spacevolution`) holds the gameplay frameworks: the modular ship, zero-point flight, the ocean and the wave rider.
 - **Python generators** (`Scripts/`) run inside the editor and produce nearly all content: Geometry Script meshes, materials, Blueprints, data assets, input assets and the levels themselves.
 
-Work happens from WSL against the Windows project folder (`/home/jake/games/Spacevolution-unreal` is a symlink to it). **The project is not under git**, so there's no way to recover an overwritten source file or asset.
+Work happens from WSL against the Windows project folder (`/home/jake/games/Spacevolution-unreal` is a symlink to it). Git (`git@github.com:ajgames/spacevolution-unreal.git`) tracks source, scripts and config only. **`Content/` is gitignored**, so a fresh clone has no assets until the generators run, and a hand-made asset that gets overwritten can't be recovered.
 
 ## Commands
 
